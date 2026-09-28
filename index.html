@@ -815,7 +815,7 @@ function startShadowing(txt) {
 
             const currentTrack = playerControls[curIdx];
 
-            if(currentTrack) {
+            if(currentTrack && typeof updateFraseoActivity === 'function') {
                 updateFraseoActivity({
                     exerciseId: currentTrack.exerciseId,
                     language: currentTrack.type.toUpperCase(),
