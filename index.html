@@ -802,7 +802,7 @@ function startShadowing(txt) {
     $('modalSHA').style.display = 'flex';
     $('shaText').textContent = txt;
 
-    let t = 5;
+    let t = Math.ceil(mainAudio.duration * 1.2);
     $('shaTimer').textContent = t;
 
     shaInterval = setInterval(() => {
