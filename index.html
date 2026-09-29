@@ -785,16 +785,40 @@ const eT = typeof l.end === 'number'
         };
 
         playerControls.push(ctrl);
-        pBtn.onclick = () => { isSeq = false; play(ctrl); };
+        pBtn.onclick = () => {
+    if (playerControls[curIdx] === ctrl && !mainAudio.paused) {
+        mainAudio.pause();
+        pBtn.innerHTML = '&#9654;';
+        return;
+    }
+
+    isSeq = false;
+
+    if (playerControls[curIdx] === ctrl && mainAudio.currentTime > 0) {
+        mainAudio.play();
+        pBtn.innerHTML = '&#10074;&#10074;';
+    } else {
+        play(ctrl);
+    }
+};
         rBtn.onclick = () => openReto(ctrl);
         sBtn.onclick = () => startShadowing(ctrl.text);
     } catch(e) {}
 }
 
 function play(p) {
-    curIdx = playerControls.indexOf(p); p.div.classList.remove('player-done'); mainAudio.src = p.audio; mainAudio.play();
-    playerControls.forEach(c => c.div.querySelector('.play-btn').classList.remove('active'));
+    curIdx = playerControls.indexOf(p);
+    mainAudio.src = p.audio;
+    mainAudio.currentTime = 0;
+    mainAudio.play();
+
+    playerControls.forEach(c => {
+        c.div.querySelector('.play-btn').classList.remove('active');
+        c.div.querySelector('.play-btn').innerHTML = '&#9654;';
+    });
+
     p.div.querySelector('.play-btn').classList.add('active');
+    p.div.querySelector('.play-btn').innerHTML = '&#10074;&#10074;';
     const clr = p.type === 'es' ? 'var(--color-es)' : 'var(--color-en)';
     const anim = () => {
         if(mainAudio.paused) return; const time = mainAudio.currentTime;
@@ -802,8 +826,14 @@ function play(p) {
         requestAnimationFrame(anim);
     };
     requestAnimationFrame(anim);
-    mainAudio.onended = () => { p.div.classList.add('player-done'); p.div.querySelector('.play-btn').classList.remove('active'); p.rBtn.style.display = "inline-block"; p.sBtn.style.display = "inline-block"; if(isSeq) startShadowing(p.text); };
-}
+    mainAudio.onended = () => {
+    p.div.classList.add('player-done');
+    p.div.querySelector('.play-btn').classList.remove('active');
+    p.div.querySelector('.play-btn').innerHTML = '&#9654;';
+    p.rBtn.style.display = "inline-block";
+    p.sBtn.style.display = "inline-block";
+    if(isSeq) startShadowing(p.text);
+};
 
 function startShadowing(txt) {
     if(shaInterval) clearInterval(shaInterval);
