@@ -539,7 +539,7 @@ function calculateAccuracy(heardText, confidence) {
         for (let j = 1; j <= a.length; j++) matrix[0][j] = j;
         for (let i = 1; i <= b.length; i++) {
             for (let j = 1; j <= a.length; j++) {
-                if (b.charAt(i - 1) === a.charAt(j - 1)) matrix[i][j] = matrix[i - 1][j - 1];
+                if (b.charAt(i - 1) === a.charAt(j - 1)) matrix[i][j] = matrix[i - 1][j];
                 else matrix[i][j] = Math.min(matrix[i - 1][j - 1] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j] + 1);
             }
         }
@@ -733,12 +733,13 @@ async function addPlayer(aUrl, jUrl, type) {
             l.text.split(' ').forEach((w, j) => {
                 const s = document.createElement('span'); s.textContent = w + ' ';
                 const sT = typeof l.start === 'number'
-    ? l.start
-    : l.start.split(':').reduce((a,t)=>60*a+ +t,0);
+                    ? l.start
+                    : l.start.split(':').reduce((a,t)=>60*a+ +t,0);
 
-const eT = typeof l.end === 'number'
-    ? l.end
-    : l.end.split(':').reduce((a,t)=>60*a+ +t,0);
+                const eT = typeof l.end === 'number'
+                    ? l.end
+                    : l.end.split(':').reduce((a,t)=>60*a+ +t,0);
+
                 const wD = (eT - sT) / l.text.split(' ').length;
                 s.dataset.start = (sT + j*wD).toFixed(2); s.dataset.end = (sT + (j+1)*wD).toFixed(2);
                 line.appendChild(s);
@@ -785,24 +786,80 @@ const eT = typeof l.end === 'number'
         };
 
         playerControls.push(ctrl);
-        pBtn.onclick = () => { isSeq = false; play(ctrl); };
+
+        pBtn.onclick = () => {
+            if (playerControls[curIdx] === ctrl && !mainAudio.paused) {
+                mainAudio.pause();
+                pBtn.innerHTML = '&#9654;';
+                pBtn.classList.remove('active');
+                return;
+            }
+
+            if (playerControls[curIdx] === ctrl && mainAudio.paused && !mainAudio.ended && mainAudio.currentTime > 0) {
+                mainAudio.play();
+                pBtn.innerHTML = '&#10074;&#10074;';
+                pBtn.classList.add('active');
+
+                if (ctrl._anim) {
+                    requestAnimationFrame(ctrl._anim);
+                }
+                return;
+            }
+
+            isSeq = false;
+            play(ctrl);
+        };
+
         rBtn.onclick = () => openReto(ctrl);
         sBtn.onclick = () => startShadowing(ctrl.text);
     } catch(e) {}
 }
 
 function play(p) {
-    curIdx = playerControls.indexOf(p); p.div.classList.remove('player-done'); mainAudio.src = p.audio; mainAudio.play();
-    playerControls.forEach(c => c.div.querySelector('.play-btn').classList.remove('active'));
+    curIdx = playerControls.indexOf(p);
+    p.div.classList.remove('player-done');
+
+    mainAudio.src = p.audio;
+    mainAudio.currentTime = 0;
+    mainAudio.play();
+
+    playerControls.forEach(c => {
+        c.div.querySelector('.play-btn').classList.remove('active');
+        c.div.querySelector('.play-btn').innerHTML = '&#9654;';
+    });
+
     p.div.querySelector('.play-btn').classList.add('active');
+    p.div.querySelector('.play-btn').innerHTML = '&#10074;&#10074;';
+
     const clr = p.type === 'es' ? 'var(--color-es)' : 'var(--color-en)';
+
     const anim = () => {
-        if(mainAudio.paused) return; const time = mainAudio.currentTime;
-        p.spans.forEach(s => { const start = parseFloat(s.dataset.start); const end = parseFloat(s.dataset.end); s.style.color = (time >= start && time <= end) ? clr : 'inherit'; });
+        if(mainAudio.paused) return;
+
+        const time = mainAudio.currentTime;
+
+        p.spans.forEach(s => {
+            const start = parseFloat(s.dataset.start);
+            const end = parseFloat(s.dataset.end);
+            s.style.color = (time >= start && time <= end) ? clr : 'inherit';
+        });
+
         requestAnimationFrame(anim);
     };
+
+    p._anim = anim;
+
     requestAnimationFrame(anim);
-    mainAudio.onended = () => { p.div.classList.add('player-done'); p.div.querySelector('.play-btn').classList.remove('active'); p.rBtn.style.display = "inline-block"; p.sBtn.style.display = "inline-block"; if(isSeq) startShadowing(p.text); };
+
+    mainAudio.onended = () => {
+        p.div.classList.add('player-done');
+        p.div.querySelector('.play-btn').classList.remove('active');
+        p.div.querySelector('.play-btn').innerHTML = '&#9654;';
+        p.rBtn.style.display = "inline-block";
+        p.sBtn.style.display = "inline-block";
+
+        if(isSeq) startShadowing(p.text);
+    };
 }
 
 function startShadowing(txt) {
