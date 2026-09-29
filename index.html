@@ -1193,8 +1193,7 @@ $('stopBtn').onclick = () => {
 
  async function init() {
     try {
-        const tagsResponse = await fetch('https://raw.githubusercontent.com/xpanol/PLAYERS/refs/heads/main/data/marketing/tags.json');
-
+        const tagsResponse = await fetch(BASE_URL + 'data/marketing/tags.json');
         if (tagsResponse.ok) {
             const externalTags = await tagsResponse.json();
             TRACK_TAGS = externalTags; 
