@@ -638,8 +638,16 @@ $('startRec').onclick = async () => {
 $('playRecBtn').onclick = () => {
     if (recordedUrl) {
         mainAudio.pause();
-        if (reviewAudio) reviewAudio.pause();
-        reviewAudio = new Audio(recordedUrl); reviewAudio.play().catch(err => console.error(err));
+
+        if (!reviewAudio) {
+            reviewAudio = new Audio();
+        }
+
+        reviewAudio.pause();
+        reviewAudio.src = recordedUrl;
+        reviewAudio.load();
+
+        reviewAudio.play().catch(err => console.error("REVIEW AUDIO PLAY ERROR:", err));
     }
 };
 
