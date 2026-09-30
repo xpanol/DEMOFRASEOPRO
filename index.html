@@ -635,21 +635,43 @@ $('startRec').onclick = async () => {
     } else { stopListeningState(); }
 };
 
-$('playRecBtn').onclick = () => {
+
+/* ONLY CHANGE: mobile-safe recording playback */
+$('playRecBtn').onclick = async () => {
     if (recordedUrl) {
         mainAudio.pause();
 
-        if (!reviewAudio) {
-            reviewAudio = new Audio();
+        if (reviewAudio) reviewAudio.pause();
+
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            const audioCtx = new AudioContext();
+
+            if (audioCtx.state === 'suspended') {
+                await audioCtx.resume();
+            }
+
+            const response = await fetch(recordedUrl);
+            const arrayBuffer = await response.arrayBuffer();
+
+            const decodedBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+            const wavBlob = bufferToWav(decodedBuffer);
+
+            await audioCtx.close();
+
+            const wavUrl = URL.createObjectURL(wavBlob);
+
+            reviewAudio = new Audio(wavUrl);
+            reviewAudio.play().catch(err => {
+                console.error("REVIEW AUDIO PLAY ERROR:", err);
+            });
+
+        } catch (err) {
+            console.error("REVIEW AUDIO PLAY ERROR:", err);
         }
-
-        reviewAudio.pause();
-        reviewAudio.src = recordedUrl;
-        reviewAudio.load();
-
-        reviewAudio.play().catch(err => console.error("REVIEW AUDIO PLAY ERROR:", err));
     }
 };
+
 
 $('playOrigBtn').onclick = () => {
     const currentTrack = playerControls[curIdx];
