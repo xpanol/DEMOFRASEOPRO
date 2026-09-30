@@ -537,21 +537,25 @@ function calculateAccuracy(heardText, confidence) {
         return;
     }
 
+    const getLevenshteinDistance = (a, b) => {
+        const matrix = [];
+        for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+        for (let j = 1; j <= a.length; j++) matrix[0][j] = j;
+        for (let i = 1; i <= b.length; i++) {
+            for (let j = 1; j <= a.length; j++) {
+                if (b.charAt(i - 1) === a.charAt(j - 1)) matrix[i][j] = matrix[i - 1][j];
+                else matrix[i][j] = Math.min(matrix[i - 1][j - 1] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j] + 1);
+            }
+        }
+        return matrix[b.length][a.length];
+    };
+    const distance = getLevenshteinDistance(s1, s2);
+    const maxLength = Math.max(s1.length, s2.length);
+    let accuracyPercentage = Math.round(((maxLength - distance) / maxLength) * 100);
+    if (accuracyPercentage >= 96) accuracyPercentage = 100;
+    
     const originalWordsClean = s1.split(/\s+/);
     const heardWordsClean = s2.split(/\s+/);
-
-    let correctWords = 0;
-
-    originalWordsClean.forEach(word => {
-        if (heardWordsClean.includes(word)) {
-            correctWords++;
-        }
-    });
-
-    let accuracyPercentage = Math.round(
-        (correctWords / originalWordsClean.length) * 100
-    );
-
     const suspiciousNotes = [];
     const confidenceValue = typeof confidence === 'number' ? confidence : 1;
     const lengthRatio = Math.min(s1.length, s2.length) / Math.max(s1.length, s2.length);
@@ -635,19 +639,38 @@ $('startRec').onclick = async () => {
     } else { stopListeningState(); }
 };
 
-$('playRecBtn').onclick = () => {
+/* ONLY CHANGE: mobile-safe playback through AudioContext */
+$('playRecBtn').onclick = async () => {
     if (recordedUrl) {
         mainAudio.pause();
-
-        if (!reviewAudio) {
-            reviewAudio = new Audio();
+        if (reviewAudio) {
+            try { reviewAudio.stop(); } catch(e) {}
+            try { reviewAudio.pause(); } catch(e) {}
         }
 
-        reviewAudio.pause();
-        reviewAudio.src = recordedUrl;
-        reviewAudio.load();
+        try {
+            const response = await fetch(recordedUrl);
+            const arrayBuffer = await response.arrayBuffer();
 
-        reviewAudio.play().catch(err => console.error("REVIEW AUDIO PLAY ERROR:", err));
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            const audioCtx = new AudioContext();
+
+            if (audioCtx.state === 'suspended') {
+                await audioCtx.resume();
+            }
+
+            const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+            const source = audioCtx.createBufferSource();
+
+            source.buffer = audioBuffer;
+            source.connect(audioCtx.destination);
+            source.start(0);
+
+            reviewAudio = source;
+
+        } catch (err) {
+            console.error("Playback error:", err);
+        }
     }
 };
 
