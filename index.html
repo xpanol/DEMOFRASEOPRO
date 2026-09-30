@@ -680,9 +680,14 @@ $('playOrigBtn').onclick = () => {
 
 $('resetRetoBtn').onclick = () => {
     if (reviewAudio) reviewAudio.pause(); mainAudio.pause(); stopListeningState();
+
+    recognition = null;
+
     $('systemHeard').textContent = 'Visual comparison will appear here after recording...';
     $('accuracyText').textContent = '0%'; $('playRecBtn').style.display = 'none';
-    recordedUrl = null; reviewAudio = null; lastEvaluatedScore = 0; lastEvaluatedHtml = ""; lastCleanRawText = "";
+    recordedUrl = null; reviewAudio = null;
+    audioChunks = [];
+    lastEvaluatedScore = 0; lastEvaluatedHtml = ""; lastCleanRawText = "";
     $('speechStatus').textContent = "Native Engine Ready (Reset Done)";
 };
 
